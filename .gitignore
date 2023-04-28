@@ -19,3 +19,9 @@
 
 # Go workspace file
 go.work
+
+sql2csv
+
+bin/sql2csv-*
+
+.vscode/
