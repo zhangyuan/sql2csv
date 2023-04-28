@@ -46,10 +46,15 @@ func invoke(connectionUri string, query string) error {
 	w := csv.NewWriter(os.Stdout)
 	defer w.Flush()
 
+	isFirstRow := true
 	for rows.Next() {
 		columns, err := rows.Columns()
 		if err != nil {
 			return err
+		}
+
+		if isFirstRow {
+			w.Write(columns)
 		}
 
 		var record = make([]string, len(columns))
@@ -60,6 +65,8 @@ func invoke(connectionUri string, query string) error {
 		}
 		rows.Scan(recordPointer...)
 		w.Write(record)
+
+		isFirstRow = false
 	}
 
 	return nil
