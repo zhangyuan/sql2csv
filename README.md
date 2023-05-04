@@ -15,9 +15,9 @@ Open a new termial and run:
 ```bash
 export DATABASE_URI="postgresql://localhost/postgres?user=postgres&password=mypassword&sslmode=disable"
 
-go run main.go -q "select * from users"
+go run main.go -q "select * from users" | tee output.csv
 
 # or use the executable on MacOS for example
 
-./sql2csv-amd64-darwin -q "select * from users"
+./sql2csv-amd64-darwin -q "select * from users" | tee output.csv
 ```
