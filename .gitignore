@@ -25,3 +25,5 @@ sql2csv
 bin/sql2csv-*
 
 .vscode/
+
+/tmp/

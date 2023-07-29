@@ -46,27 +46,48 @@ func invoke(connectionUri string, query string) error {
 	w := csv.NewWriter(os.Stdout)
 	defer w.Flush()
 
-	isFirstRow := true
-	for rows.Next() {
-		columns, err := rows.Columns()
-		if err != nil {
-			return err
+	data := make(chan []string, 20)
+	errs := make(chan error, 1)
+
+	go func() {
+		isFirstRow := true
+		for rows.Next() {
+			columns, err := rows.Columns()
+			if err != nil {
+				errs <- err
+				close(errs)
+				close(data)
+			}
+			if isFirstRow {
+				data <- columns
+				isFirstRow = false
+			}
+
+			var record = make([]string, len(columns))
+			var recordPointer = make([]any, len(columns))
+
+			for idx := range record {
+				recordPointer[idx] = &record[idx]
+			}
+			rows.Scan(recordPointer...)
+
+			data <- record
 		}
 
-		if isFirstRow {
-			w.Write(columns)
+		close(data)
+		close(errs)
+	}()
+
+	for {
+		if row, ok := <-data; ok {
+			w.Write(row)
+		} else {
+			break
 		}
+	}
 
-		var record = make([]string, len(columns))
-		var recordPointer = make([]any, len(columns))
-
-		for idx := range record {
-			recordPointer[idx] = &record[idx]
-		}
-		rows.Scan(recordPointer...)
-		w.Write(record)
-
-		isFirstRow = false
+	if err := <-errs; err != nil {
+		return err
 	}
 
 	return nil
