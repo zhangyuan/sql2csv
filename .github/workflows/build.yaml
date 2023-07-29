@@ -26,8 +26,8 @@ jobs:
         go-version: '1.18'
     - name: Install PostgreSQL client
       run: |
-        apt-get update
-        apt-get install --yes postgresql-client
+        sudo apt-get update
+        sudo apt-get install --yes postgresql-client
     - name: Query database
       run: psql -h postgres -d postgres -U postgres  -a -f ./docker/postgres/initdb.d/init.sql
       env:
