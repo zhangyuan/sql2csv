@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/csv"
-	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -48,13 +47,16 @@ func invoke(connectionUri string, query string) error {
 	defer w.Flush()
 
 	data := make(chan []string, 20)
+	errs := make(chan error, 1)
 
 	go func() {
 		isFirstRow := true
 		for rows.Next() {
 			columns, err := rows.Columns()
 			if err != nil {
-				fmt.Printf("%v", err)
+				errs <- err
+				close(errs)
+				close(data)
 			}
 			if isFirstRow {
 				data <- columns
@@ -73,6 +75,7 @@ func invoke(connectionUri string, query string) error {
 		}
 
 		close(data)
+		close(errs)
 	}()
 
 	for {
@@ -81,6 +84,10 @@ func invoke(connectionUri string, query string) error {
 		} else {
 			break
 		}
+	}
+
+	if err := <-errs; err != nil {
+		return err
 	}
 
 	return nil
