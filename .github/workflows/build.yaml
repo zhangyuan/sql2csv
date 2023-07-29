@@ -30,11 +30,14 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install --yes postgresql-client
-    - name: Query database
+    - name: Init database
       run: psql -h 127.0.0.1 -d postgres -U postgres  -a -f ./docker/postgres/initdb.d/init.sql
       env:
         PGPASSWORD: mypassword
-    - run: ./build.sh
+    - name: Run test
+      run: ./scripts/test.sh
+    - name: Build
+      run: ./scripts/build.sh
     - uses: actions/upload-artifact@v3
       with:
         name: binaries
