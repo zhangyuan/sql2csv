@@ -1,8 +1,8 @@
 CREATE TABLE users AS
 SELECT *
 FROM (
-    VALUES (1, 'Jack'),
-      (2, 'James'),
-      (3, cast(NULL as VARCHAR(10))),
-      (4, 'y\'c, z')
-  ) AS t (id, name);
+    VALUES ROW(1, 'Jack'),
+      ROW(2, 'James'),
+      ROW(3, cast(NULL as VARCHAR(10))),
+      ROW(4, 'y\'c, z')
+  ) t (id, name);
