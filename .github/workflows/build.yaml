@@ -22,8 +22,8 @@ jobs:
       with:
         version: v1.54
     - run: docker compose up -d
-    - run: timeout 20 sh -c 'until nc -z $0 $1; do sleep 1; done' 127.0.0.1 3306
-    - run: timeout 20 sh -c 'until nc -z $0 $1; do sleep 1; done' 127.0.0.1 5432
+    - run: sleep 30
+    - run: docker compose logs
     - name: Run test for Postgres
       run: ./scripts/test.sh
       env:
