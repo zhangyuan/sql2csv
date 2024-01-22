@@ -11,14 +11,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:14-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: mypassword
-        ports:
-          - 5432:5432
     steps:
     - uses: actions/checkout@v3
       with:
@@ -26,16 +18,17 @@ jobs:
     - uses: actions/setup-go@v4
       with:
         go-version: '1.18'
-    - name: Install PostgreSQL client
-      run: |
-        sudo apt-get update
-        sudo apt-get install --yes postgresql-client
-    - name: Init database
-      run: psql -h 127.0.0.1 -d postgres -U postgres  -a -f ./docker/postgres/initdb.d/init.sql
-      env:
-        PGPASSWORD: mypassword
-    - name: Run test
+    - run: docker compose up -d
+    - name: Run test for Postgres
       run: ./scripts/test.sh
+      env:
+        DATABASE_URI: postgresql://127.0.0.1/postgres?user=postgres&password=mypassword&sslmode=disable
+    - name: Run test for MySQL
+      run: ./scripts/test.sh
+      env:
+        DATABASE_URI: mysql://root:mypassword@tcp(127.0.0.1:3306)/csv
+    - run: docker compose down -v
+      if: ${{ always() }}
     - name: Build
       run: ./scripts/build.sh
     - uses: actions/upload-artifact@v3
@@ -43,3 +36,4 @@ jobs:
         name: binaries
         path: bin/sql2csv-*
         retention-days: 3
+    
