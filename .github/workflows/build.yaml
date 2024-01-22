@@ -22,7 +22,8 @@ jobs:
       with:
         version: v1.54
     - run: docker compose up -d
-    - run: sleep 30
+    - run: docker compose logs
+    - run: sleep 10
     - run: docker compose logs
     - name: Run test for Postgres
       run: ./scripts/test.sh
