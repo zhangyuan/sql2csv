@@ -2,23 +2,48 @@ package main
 
 import (
 	"encoding/csv"
+	"errors"
 	"log"
 	"os"
 	"strings"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/jessevdk/go-flags"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
 
 var opts struct {
-	Query string `short:"q" long:"query" description:"SQL query" required:"true"`
+	Query string `short:"q" long:"query" description:"SQL query" required:"false"`
+	File  string `short:"f" long:"file" description:"SQL query file" required:"false"`
 }
 
 func main() {
+	if err := invoke(); err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func invoke() error {
 	_, err := flags.ParseArgs(&opts, os.Args)
 	if err != nil {
-		os.Exit(1)
+		return err
+	}
+
+	if opts.File == "" && opts.Query == "" {
+		return errors.New("either file or query must be provided")
+	}
+
+	var query string
+	if opts.File != "" {
+		if bytes, err := os.ReadFile(opts.File); err != nil {
+			return err
+		} else {
+			query = string(bytes)
+		}
+
+	} else {
+		query = opts.Query
 	}
 
 	databaseUri := os.Getenv("DATABASE_URI")
@@ -26,13 +51,24 @@ func main() {
 		log.Fatalln("env var DATABASE_URI must be set")
 	}
 
-	if err := invoke(databaseUri, opts.Query); err != nil {
-		log.Fatalln(err)
+	if err := run(databaseUri, query); err != nil {
+		return err
 	}
+
+	return nil
 }
 
-func invoke(connectionUri string, query string) error {
-	db, err := sqlx.Connect("postgres", connectionUri)
+func getDB(connectionUri string) (*sqlx.DB, error) {
+	if strings.HasPrefix(connectionUri, "postgres") {
+		return sqlx.Connect("postgres", strings.TrimPrefix(connectionUri, "postgres://"))
+	} else if strings.HasPrefix(connectionUri, "mysql") {
+		return sqlx.Connect("mysql", strings.TrimPrefix(connectionUri, "mysql://"))
+	}
+	return nil, errors.New("invalid connection URI")
+}
+
+func run(connectionUri string, query string) error {
+	db, err := getDB(connectionUri)
 	if err != nil {
 		return err
 	}
@@ -63,15 +99,35 @@ func invoke(connectionUri string, query string) error {
 				isFirstRow = false
 			}
 
-			var record = make([]string, len(columns))
+			var record = make([]*string, len(columns))
 			var recordPointer = make([]any, len(columns))
 
 			for idx := range record {
 				recordPointer[idx] = &record[idx]
 			}
-			rows.Scan(recordPointer...)
 
-			data <- record
+			if err := rows.Scan(recordPointer...); err != nil {
+				errs <- err
+				close(errs)
+				close(data)
+			}
+
+			var csvRecord = make([]string, len(columns))
+			for idx, field := range record {
+				if field == nil {
+					csvRecord[idx] = ""
+				} else {
+					csvRecord[idx] = *field
+				}
+			}
+
+			if err := rows.Scan(recordPointer...); err != nil {
+				errs <- err
+				close(errs)
+				close(data)
+			}
+
+			data <- csvRecord
 		}
 
 		close(data)
@@ -80,7 +136,9 @@ func invoke(connectionUri string, query string) error {
 
 	for {
 		if row, ok := <-data; ok {
-			w.Write(row)
+			if err := w.Write(row); err != nil {
+				return nil
+			}
 		} else {
 			break
 		}
