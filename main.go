@@ -99,15 +99,35 @@ func run(connectionUri string, query string) error {
 				isFirstRow = false
 			}
 
-			var record = make([]string, len(columns))
+			var record = make([]*string, len(columns))
 			var recordPointer = make([]any, len(columns))
 
 			for idx := range record {
 				recordPointer[idx] = &record[idx]
 			}
-			rows.Scan(recordPointer...)
 
-			data <- record
+			if err := rows.Scan(recordPointer...); err != nil {
+				errs <- err
+				close(errs)
+				close(data)
+			}
+
+			var csvRecord = make([]string, len(columns))
+			for idx, field := range record {
+				if field == nil {
+					csvRecord[idx] = ""
+				} else {
+					csvRecord[idx] = *field
+				}
+			}
+
+			if err := rows.Scan(recordPointer...); err != nil {
+				errs <- err
+				close(errs)
+				close(data)
+			}
+
+			data <- csvRecord
 		}
 
 		close(data)
@@ -116,7 +136,9 @@ func run(connectionUri string, query string) error {
 
 	for {
 		if row, ok := <-data; ok {
-			w.Write(row)
+			if err := w.Write(row); err != nil {
+				return nil
+			}
 		} else {
 			break
 		}
