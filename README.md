@@ -4,7 +4,7 @@ You can download the executables from the [Releases](https://github.com/zhangyua
 
 ### Example
 
-Run a local posrtgres instance:
+Run a local PostgresSQL instance:
 
 ```bash
 docker-compose up
@@ -26,12 +26,11 @@ go run main.go -q "select * from users" | tee output.csv
 
 MySQL
 
-```
+```bash
 export DATABASE_URI=mysql://root:mypassword@tcp(127.0.0.1:3306)/csv
 ```
 
-
 Postgres
-```
+```bash
 export DATABASE_URI=postgresql://localhost/postgres?user=postgres&password=mypassword&sslmode=disable
 ```
