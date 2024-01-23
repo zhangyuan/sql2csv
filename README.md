@@ -21,3 +21,17 @@ go run main.go -q "select * from users" | tee output.csv
 
 ./sql2csv-amd64-darwin -q "select * from users" | tee output.csv
 ```
+
+### DATABASE_URI examples
+
+MySQL
+
+```
+export DATABASE_URI=mysql://root:mypassword@tcp(127.0.0.1:3306)/csv
+```
+
+
+Postgres
+```
+export DATABASE_URI=postgresql://localhost/postgres?user=postgres&password=mypassword&sslmode=disable
+```
