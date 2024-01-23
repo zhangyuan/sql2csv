@@ -5,7 +5,6 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"html/template"
 	"log"
 	"os"
@@ -68,8 +67,6 @@ func invoke() error {
 		}
 		query = buf.String()
 	}
-
-	fmt.Println(query)
 
 	databaseUri := os.Getenv("DATABASE_URI")
 	if strings.TrimSpace(databaseUri) == "" {
