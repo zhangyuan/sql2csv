@@ -20,7 +20,7 @@ jobs:
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v3
       with:
-        version: v1.54
+        version: v1.55.2
     - run: docker compose up -d
     - run: docker compose logs
     - run: sleep 10
