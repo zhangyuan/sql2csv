@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"encoding/csv"
+	"encoding/json"
 	"errors"
+	"html/template"
 	"log"
 	"os"
 	"strings"
@@ -16,6 +19,7 @@ import (
 var opts struct {
 	Query string `short:"q" long:"query" description:"SQL query" required:"false"`
 	File  string `short:"f" long:"file" description:"SQL query file" required:"false"`
+	Vars  string `long:"vars" description:"SQL query template variables" required:"false"`
 }
 
 func main() {
@@ -44,6 +48,24 @@ func invoke() error {
 
 	} else {
 		query = opts.Query
+	}
+
+	if opts.Vars != "" {
+		var vars interface{}
+		if err := json.Unmarshal([]byte(opts.Vars), &vars); err != nil {
+			return err
+		}
+		template, err := template.New("template").Parse(query)
+		if err != nil {
+			return err
+		}
+
+		var buf bytes.Buffer
+
+		if err := template.Execute(&buf, vars); err != nil {
+			return err
+		}
+		query = buf.String()
 	}
 
 	databaseUri := os.Getenv("DATABASE_URI")
