@@ -94,6 +94,7 @@ func run(connectionUri string, query string) error {
 	if err != nil {
 		return err
 	}
+	defer db.Close()
 
 	rows, err := db.Queryx(query)
 	if err != nil {
