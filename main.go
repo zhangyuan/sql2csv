@@ -160,7 +160,7 @@ func run(connectionUri string, query string) error {
 	for {
 		if row, ok := <-data; ok {
 			if err := w.Write(row); err != nil {
-				return nil
+				return err
 			}
 		} else {
 			break
