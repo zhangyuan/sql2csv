@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"html/template"
 	"log"
 	"os"
@@ -73,7 +74,7 @@ func invoke() error {
 		log.Fatalln("env var DATABASE_URI must be set")
 	}
 
-	if err := run(databaseUri, query); err != nil {
+	if err := write2csv(databaseUri, query); err != nil {
 		return err
 	}
 
@@ -89,7 +90,47 @@ func getDB(connectionUri string) (*sqlx.DB, error) {
 	return nil, errors.New("invalid connection URI")
 }
 
-func run(connectionUri string, query string) error {
+func write2csv(connectionUri string, query string) error {
+	w := csv.NewWriter(os.Stdout)
+	defer w.Flush()
+
+	dataChan := make(chan []string, 100)
+	errChan := make(chan error, 1)
+
+	go func() {
+		if err := run(connectionUri, query, func(columnNames []string) error {
+			dataChan <- columnNames
+			return nil
+		}, func(row []any) error {
+			values := make([]string, len(row))
+			for idx := range row {
+				values[idx] = fmt.Sprintf("%v", row[idx])
+			}
+			dataChan <- values
+			return nil
+		}); err != nil {
+			errChan <- err
+		}
+	}()
+
+Loop:
+	for {
+		select {
+		case data, ok := <-dataChan:
+			if !ok {
+				break Loop
+			}
+			if err := w.Write(data); err != nil {
+				return err
+			}
+		case err := <-errChan:
+			return err
+		}
+	}
+	return nil
+}
+
+func run(connectionUri string, query string, onHeader func([]string) error, onRecord func([]any) error) error {
 	db, err := getDB(connectionUri)
 	if err != nil {
 		return err
@@ -102,73 +143,41 @@ func run(connectionUri string, query string) error {
 	}
 	defer rows.Close()
 
-	w := csv.NewWriter(os.Stdout)
-	defer w.Flush()
-
-	data := make(chan []string, 20)
-	errs := make(chan error, 1)
-
-	go func() {
-		isFirstRow := true
-		for rows.Next() {
-			columns, err := rows.Columns()
-			if err != nil {
-				errs <- err
-				close(errs)
-				close(data)
-			}
-			if isFirstRow {
-				data <- columns
-				isFirstRow = false
-			}
-
-			var record = make([]*string, len(columns))
-			var recordPointer = make([]any, len(columns))
-
-			for idx := range record {
-				recordPointer[idx] = &record[idx]
-			}
-
-			if err := rows.Scan(recordPointer...); err != nil {
-				errs <- err
-				close(errs)
-				close(data)
-			}
-
-			var csvRecord = make([]string, len(columns))
-			for idx, field := range record {
-				if field == nil {
-					csvRecord[idx] = ""
-				} else {
-					csvRecord[idx] = *field
-				}
-			}
-
-			if err := rows.Scan(recordPointer...); err != nil {
-				errs <- err
-				close(errs)
-				close(data)
-			}
-
-			data <- csvRecord
-		}
-
-		close(data)
-		close(errs)
-	}()
-
-	for {
-		if row, ok := <-data; ok {
-			if err := w.Write(row); err != nil {
-				return err
-			}
-		} else {
-			break
-		}
+	columns, err := rows.Columns()
+	if err != nil {
+		return err
+	}
+	if err := onHeader(columns); err != nil {
+		return err
 	}
 
-	if err := <-errs; err != nil {
-		return err
+	for rows.Next() {
+		var record = make([]*string, len(columns))
+		var recordPointer = make([]any, len(columns))
+
+		for idx := range record {
+			recordPointer[idx] = &record[idx]
+		}
+
+		if err := rows.Scan(recordPointer...); err != nil {
+			return err
+		}
+
+		var csvRecord = make([]interface{}, len(columns))
+		for idx, field := range record {
+			if field == nil {
+				csvRecord[idx] = ""
+			} else {
+				csvRecord[idx] = *field
+			}
+		}
+
+		if err := rows.Scan(recordPointer...); err != nil {
+			return err
+		}
+		if err := onRecord(csvRecord); err != nil {
+			return err
+		}
 	}
 
 	return nil
