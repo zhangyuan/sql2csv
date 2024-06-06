@@ -111,6 +111,9 @@ func write2csv(connectionUri string, query string) error {
 		}); err != nil {
 			errChan <- err
 		}
+
+		close(dataChan)
+		close(dataChan)
 	}()
 
 Loop:
@@ -123,7 +126,10 @@ Loop:
 			if err := w.Write(data); err != nil {
 				return err
 			}
-		case err := <-errChan:
+		case err, ok := <-errChan:
+			if !ok {
+				break Loop
+			}
 			return err
 		}
 	}
