@@ -91,6 +91,12 @@ func getDB(connectionUri string) (*sqlx.DB, error) {
 }
 
 func write2csv(connectionUri string, query string) error {
+	db, err := getDB(connectionUri)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
 	w := csv.NewWriter(os.Stdout)
 	defer w.Flush()
 
@@ -98,7 +104,7 @@ func write2csv(connectionUri string, query string) error {
 	errChan := make(chan error, 1)
 
 	go func() {
-		if err := run(connectionUri, query, func(columnNames []string) error {
+		if err := run(db, query, func(columnNames []string) error {
 			dataChan <- columnNames
 			return nil
 		}, func(row []any) error {
@@ -113,7 +119,7 @@ func write2csv(connectionUri string, query string) error {
 		}
 
 		close(dataChan)
-		close(dataChan)
+		close(errChan)
 	}()
 
 Loop:
@@ -136,13 +142,7 @@ Loop:
 	return nil
 }
 
-func run(connectionUri string, query string, onHeader func([]string) error, onRecord func([]any) error) error {
-	db, err := getDB(connectionUri)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
+func run(db *sqlx.DB, query string, onHeader func([]string) error, onRecord func([]any) error) error {
 	rows, err := db.Queryx(query)
 	if err != nil {
 		return err
