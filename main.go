@@ -163,7 +163,7 @@ func run(connectionUri string, query string, onHeader func([]string) error, onRe
 			return err
 		}
 
-		var csvRecord = make([]interface{}, len(columns))
+		var csvRecord = make([]any, len(columns))
 		for idx, field := range record {
 			if field == nil {
 				csvRecord[idx] = ""
