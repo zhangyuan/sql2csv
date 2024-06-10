@@ -108,13 +108,14 @@ func write2csv(connectionUri string, query string) error {
 			dataChan <- columnNames
 			return nil
 		}, func(row []any) error {
+			fmt.Println(row)
 			values := make([]string, len(row))
 			for idx := range row {
 				if row[idx] == nil {
 					values[idx] = ""
-					continue
+				} else {
+					values[idx] = fmt.Sprintf("%v", row[idx])
 				}
-				values[idx] = fmt.Sprintf("%v", row[idx])
 			}
 			dataChan <- values
 			return nil
