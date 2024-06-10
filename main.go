@@ -158,30 +158,27 @@ func run(db *sqlx.DB, query string, onHeader func([]string) error, onRecord func
 	}
 
 	for rows.Next() {
-		var record = make([]*string, len(columns))
-		var recordPointer = make([]any, len(columns))
+		// var record = make([]*string, len(columns))
+		var record = make([]any, len(columns))
 
-		for idx := range record {
-			recordPointer[idx] = &record[idx]
-		}
+		// for idx := range record {
+		// 	recordPointer[idx] = &record[idx]
+		// }
 
-		if err := rows.Scan(recordPointer...); err != nil {
+		if err := rows.Scan(record...); err != nil {
 			return err
 		}
 
-		var csvRecord = make([]any, len(columns))
-		for idx, field := range record {
-			if field == nil {
-				csvRecord[idx] = ""
-			} else {
-				csvRecord[idx] = *field
-			}
-		}
+		// var csvRecord = make([]any, len(columns))
+		// for idx, field := range record {
+		// 	if field == nil {
+		// 		csvRecord[idx] = ""
+		// 	} else {
+		// 		csvRecord[idx] = *field
+		// 	}
+		// }
 
-		if err := rows.Scan(recordPointer...); err != nil {
-			return err
-		}
-		if err := onRecord(csvRecord); err != nil {
+		if err := onRecord(record); err != nil {
 			return err
 		}
 	}
