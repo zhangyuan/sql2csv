@@ -158,14 +158,14 @@ func run(db *sqlx.DB, query string, onHeader func([]string) error, onRecord func
 	}
 
 	for rows.Next() {
-		// var record = make([]*string, len(columns))
 		var record = make([]any, len(columns))
+		var recordPointer = make([]any, len(columns))
 
-		// for idx := range record {
-		// 	recordPointer[idx] = &record[idx]
-		// }
+		for idx := range record {
+			recordPointer[idx] = &record[idx]
+		}
 
-		if err := rows.Scan(record...); err != nil {
+		if err := rows.Scan(recordPointer...); err != nil {
 			return err
 		}
 
