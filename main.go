@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"math/big"
 	"os"
 	"strings"
 
@@ -108,7 +109,6 @@ func write2csv(connectionUri string, query string) error {
 			dataChan <- columnNames
 			return nil
 		}, func(row []any) error {
-			fmt.Println(row)
 			values := make([]string, len(row))
 			for idx := range row {
 				if row[idx] == nil {
@@ -121,10 +121,9 @@ func write2csv(connectionUri string, query string) error {
 			return nil
 		}); err != nil {
 			errChan <- err
+			close(errChan)
 		}
-
 		close(dataChan)
-		close(errChan)
 	}()
 
 Loop:
@@ -162,28 +161,45 @@ func run(db *sqlx.DB, query string, onHeader func([]string) error, onRecord func
 		return err
 	}
 
-	for rows.Next() {
-		var record = make([]any, len(columns))
-		var recordPointer = make([]any, len(columns))
+	columnTypes, err := rows.ColumnTypes()
+	if err != nil {
+		return err
+	}
 
-		for idx := range record {
-			recordPointer[idx] = &record[idx]
+	for rows.Next() {
+		rawRecord := make([]any, len(columns))
+		recordPointer := make([]any, len(columns))
+
+		for idx := range rawRecord {
+			recordPointer[idx] = &rawRecord[idx]
 		}
 
 		if err := rows.Scan(recordPointer...); err != nil {
 			return err
 		}
 
-		// var csvRecord = make([]any, len(columns))
-		// for idx, field := range record {
-		// 	if field == nil {
-		// 		csvRecord[idx] = ""
-		// 	} else {
-		// 		csvRecord[idx] = *field
-		// 	}
-		// }
+		for idx := range rawRecord {
+			if rawRecord[idx] == nil {
+				continue
+			}
+			value, ok := rawRecord[idx].([]uint8)
+			if ok {
+				// mysql
+				stringValue := string(value)
 
-		if err := onRecord(record); err != nil {
+				// todo: add more datatype mapping
+				if columnTypes[idx].DatabaseTypeName() == "BIGINT" {
+					bigint := new(big.Int)
+					bigint.SetString(stringValue, 10)
+					rawRecord[idx] = bigint
+				} else if columnTypes[idx].DatabaseTypeName() == "VARCHAR" {
+					value := rawRecord[idx].([]uint8)
+					rawRecord[idx] = string(value)
+				}
+			}
+		}
+
+		if err := onRecord(rawRecord); err != nil {
 			return err
 		}
 	}

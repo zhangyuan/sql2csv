@@ -8,10 +8,13 @@ mkdir -p tmp/
 
 go run main.go -q "select * from users where 1=1" > tmp/users.csv
 
-echo fixtures/users.csv
+echo fixtures/users.csv:
 cat fixtures/users.csv
+echo
 
-echo tmp/users.csv
+echo tmp/users.csv:
 cat tmp/users.csv
+echo
 
+echo diff:
 diff tmp/users.csv fixtures/users.csv

@@ -42,4 +42,3 @@ jobs:
         name: binaries
         path: bin/sql2csv-*
         retention-days: 3
-    
