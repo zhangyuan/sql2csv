@@ -110,6 +110,10 @@ func write2csv(connectionUri string, query string) error {
 		}, func(row []any) error {
 			values := make([]string, len(row))
 			for idx := range row {
+				if row[idx] == nil {
+					values[idx] = ""
+					continue
+				}
 				values[idx] = fmt.Sprintf("%v", row[idx])
 			}
 			dataChan <- values
