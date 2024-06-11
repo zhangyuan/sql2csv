@@ -11,34 +11,34 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 1
-    - uses: actions/setup-go@v4
-      with:
-        go-version: '1.18'
-    - name: golangci-lint
-      uses: golangci/golangci-lint-action@v3
-      with:
-        version: v1.55.2
-    - run: docker compose up -d
-    - run: docker compose logs
-    - run: sleep 10
-    - run: docker compose logs
-    - name: Run test for Postgres
-      run: ./scripts/test.sh
-      env:
-        DATABASE_URI: postgresql://127.0.0.1/postgres?user=postgres&password=mypassword&sslmode=disable
-    - name: Run test for MySQL
-      run: ./scripts/test.sh
-      env:
-        DATABASE_URI: mysql://root:mypassword@tcp(127.0.0.1:3306)/csv
-    - run: docker compose down -v
-      if: ${{ always() }}
-    - name: Build
-      run: ./scripts/build.sh
-    - uses: actions/upload-artifact@v3
-      with:
-        name: binaries
-        path: bin/sql2csv-*
-        retention-days: 3
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.18"
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.58
+      - run: docker compose up -d
+      - run: docker compose logs
+      - run: sleep 10
+      - run: docker compose logs
+      - name: Run test for Postgres
+        run: ./scripts/test.sh
+        env:
+          DATABASE_URI: postgresql://127.0.0.1/postgres?user=postgres&password=mypassword&sslmode=disable
+      - name: Run test for MySQL
+        run: ./scripts/test.sh
+        env:
+          DATABASE_URI: mysql://root:mypassword@tcp(127.0.0.1:3306)/csv
+      - run: docker compose down -v
+        if: ${{ always() }}
+      - name: Build
+        run: ./scripts/build.sh
+      - uses: actions/upload-artifact@v3
+        with:
+          name: binaries
+          path: bin/sql2csv-*
+          retention-days: 3
