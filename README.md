@@ -31,6 +31,13 @@ export DATABASE_URI=mysql://root:mypassword@tcp(127.0.0.1:3306)/csv
 ```
 
 Postgres
+
 ```bash
-export DATABASE_URI=postgresql://localhost/postgres?user=postgres&password=mypassword&sslmode=disable
+export DATABASE_URI="postgresql://localhost/postgres?user=postgres&password=mypassword&sslmode=disable"
+```
+
+MaxCompute (ODPS)
+
+```bash
+DATABASE_URI="http://ACCESS_KEY_ID:ACCESS_KEY_SECRET@service.cn-beijing.maxcompute.aliyun.com/api?project=project_name"
 ```
