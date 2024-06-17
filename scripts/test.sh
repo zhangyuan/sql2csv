@@ -6,6 +6,8 @@ export DATABASE_URI=${DATABASE_URI:-"postgresql://127.0.0.1/postgres?user=postgr
 
 mkdir -p tmp/
 
+touch .env
+
 go run main.go -q "select * from users where 1=1" > tmp/users.csv
 
 echo fixtures/users.csv:
