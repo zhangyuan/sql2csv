@@ -12,9 +12,11 @@ import (
 	"os"
 	"strings"
 
+	_ "github.com/aliyun/aliyun-odps-go-sdk/sqldriver"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jessevdk/go-flags"
 	"github.com/jmoiron/sqlx"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
@@ -25,6 +27,11 @@ var opts struct {
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
 	if err := invoke(); err != nil {
 		log.Fatalln(err)
 	}
@@ -87,8 +94,11 @@ func getDB(connectionUri string) (*sqlx.DB, error) {
 		return sqlx.Connect("postgres", strings.TrimPrefix(connectionUri, "postgres://"))
 	} else if strings.HasPrefix(connectionUri, "mysql") {
 		return sqlx.Connect("mysql", strings.TrimPrefix(connectionUri, "mysql://"))
+	} else if strings.Contains(connectionUri, "maxcompute.aliyun.com/api") {
+		return sqlx.Connect("odps", connectionUri)
 	}
-	return nil, errors.New("invalid connection URI")
+	return nil, errors.New("Invalid DATABASE_URI")
+
 }
 
 func write2csv(connectionUri string, query string) error {
